@@ -3,6 +3,8 @@ import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:school_management/pages/loginpage.dart';
 import 'package:school_management/pages/manage_students.dart';
 
+import 'generate_report_card.dart';
+
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
 
@@ -70,9 +72,13 @@ class AdminDashboard extends StatelessWidget {
             _buildDashboardItem(
               context,
               icon: Icons.picture_as_pdf_outlined,
-              label: 'Print Report Cards',
+              label: 'Generate Report Cards',
               onTap: () {
-                // Implement navigation for report cards
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const GenerateReportCardScreen()),
+                );
               },
             ),
           ],
