@@ -4,15 +4,15 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
-class GenerateReportCardScreen extends StatefulWidget {
-  const GenerateReportCardScreen({super.key});
+class GenerateMasterSheetScreen extends StatefulWidget {
+  const GenerateMasterSheetScreen({super.key});
 
   @override
-  _GenerateReportCardScreenState createState() =>
-      _GenerateReportCardScreenState();
+  _GenerateMasterSheetScreenState createState() =>
+      _GenerateMasterSheetScreenState();
 }
 
-class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
+class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
   String? selectedClass;
   String? selectedTerm;
   List<ParseObject> students = [];
@@ -25,11 +25,15 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     'Form 3',
     'Form 4',
     'Form 5',
-    'Lowersixth',
-    'Uppersixth'
-  ]; // Updated classes
+    'Lower Sixth',
+    'Upper Sixth',
+  ];
 
-  final List<String> terms = ['1', '2', '3']; // Updated terms
+  final List<String> terms = [
+    'Term 1',
+    'Term 2',
+    'Term 3',
+  ];
 
   @override
   void initState() {
@@ -70,23 +74,9 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     });
   }
 
-  Future<void> generateReportCard(ParseObject student) async {
+  Future<void> generateMasterSheet() async {
     final pdf = pw.Document();
     final termEvaluations = getTermEvaluations(selectedTerm!);
-
-    final studentAverages = students.map((student) {
-      return {
-        'name': student.get<String>('name'),
-        'average': calculateOverallAverage(student, termEvaluations),
-      };
-    }).toList();
-
-    studentAverages.sort((a, b) =>
-        (b['average'] as double? ?? 0).compareTo(a['average'] as double? ?? 0));
-
-    final studentRank = studentAverages
-            .indexWhere((s) => s['name'] == student.get<String>('name')) +
-        1;
 
     pdf.addPage(
       pw.Page(
@@ -94,39 +84,45 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Report Card', style: const pw.TextStyle(fontSize: 24)),
+              pw.Text('Master Sheet', style: const pw.TextStyle(fontSize: 24)),
               pw.SizedBox(height: 20),
-              pw.Text(
-                  'Name: ${student.get<String>('name')?.toUpperCase() ?? ''}'),
               pw.Text('Class: ${selectedClass ?? ''}'),
               pw.Text('Term: ${selectedTerm ?? ''}'),
-              pw.Text('Rank: $studentRank'),
               pw.SizedBox(height: 20),
               pw.Table.fromTextArray(
-                headers: ['Subject', 'Evaluation 1', 'Evaluation 2', 'Average'],
-                data: subjects.map((subject) {
-                  final subjectName = subject.get<String>('name') ?? '';
-                  final marksArray = student.get<List<dynamic>>(
-                          subjectName.replaceAll(" ", "")) ??
-                      List.filled(6, '');
-                  final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
-                  final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
-                  final average = ((double.tryParse(eval1.toString()) ?? 0) +
-                          (double.tryParse(eval2.toString()) ?? 0)) /
-                      2;
+                headers: [
+                  'Name',
+                  ...subjects
+                      .map((subject) => subject.get<String>('name') ?? '')
+                      .toList(),
+                  'Overall Average',
+                  'Rank'
+                ],
+                data: students.map((student) {
+                  final averages = subjects.map((subject) {
+                    final subjectName = subject.get<String>('name') ?? '';
+                    final marksArray = student.get<List<dynamic>>(
+                            subjectName.replaceAll(" ", "")) ??
+                        List.filled(6, '');
+                    final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
+                    final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
+                    final average = ((double.tryParse(eval1.toString()) ?? 0) +
+                            (double.tryParse(eval2.toString()) ?? 0)) /
+                        2;
+                    return average.toStringAsFixed(2);
+                  }).toList();
+
+                  final overallAverage =
+                      calculateOverallAverage(student, termEvaluations);
+                  final rank = calculateRank(student, termEvaluations);
+
                   return [
-                    subjectName,
-                    eval1.toString(),
-                    eval2.toString(),
-                    average.toStringAsFixed(2)
+                    student.get<String>('name')?.toUpperCase() ?? '',
+                    ...averages,
+                    overallAverage.toStringAsFixed(2),
+                    rank.toString()
                   ];
                 }).toList(),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Overall Average: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)}',
-                style:
-                    pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
               ),
             ],
           );
@@ -141,11 +137,11 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
 
   List<int> getTermEvaluations(String term) {
     switch (term) {
-      case '1':
+      case 'Term 1':
         return [1, 2];
-      case '2':
+      case 'Term 2':
         return [3, 4];
-      case '3':
+      case 'Term 3':
         return [5, 6];
       default:
         return [1, 2];
@@ -174,11 +170,31 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     return count > 0 ? total / count : 0;
   }
 
+  int calculateRank(ParseObject student, List<int> termEvaluations) {
+    final studentAverages = students.map((student) {
+      return {
+        'name': student.get<String>('name'),
+        'average': calculateOverallAverage(student, termEvaluations),
+      };
+    }).toList();
+
+    studentAverages.sort((a, b) =>
+        (b['average'] as double? ?? 0).compareTo(a['average'] as double? ?? 0));
+
+    final studentName = student.get<String>('name');
+    for (int i = 0; i < studentAverages.length; i++) {
+      if (studentAverages[i]['name'] == studentName) {
+        return i + 1;
+      }
+    }
+    return studentAverages.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Report Card'),
+        title: const Text('Generate Master Sheet'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -225,27 +241,9 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
             const SizedBox(height: 20),
             isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : Expanded(
-                    child: ListView.separated(
-                      itemCount: students.length,
-                      itemBuilder: (context, index) {
-                        final student = students[index];
-                        return Card(
-                          child: ListTile(
-                            title: Text(
-                                student.get<String>('name')?.toUpperCase() ??
-                                    ''),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.picture_as_pdf),
-                              onPressed: () => generateReportCard(student),
-                            ),
-                          ),
-                        );
-                      },
-                      separatorBuilder: (context, index) => const Divider(
-                        thickness: 1.5,
-                      ),
-                    ),
+                : ElevatedButton(
+                    onPressed: generateMasterSheet,
+                    child: const Text('Generate Master Sheet'),
                   ),
           ],
         ),

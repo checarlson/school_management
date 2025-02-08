@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:school_management/pages/loginpage.dart';
+import 'pages/manage_class.dart';
 
 import 'pages/add_student.dart';
 import 'pages/admin_dashboard.dart';
@@ -48,6 +49,7 @@ class MyApp extends StatelessWidget {
         '/adminDashboard': (context) => const AdminDashboard(),
         '/addStudent': (context) => const AddStudentScreen(),
         '/teacherDashboard': (context) => const TeacherDashboard(),
+        '/manageClass': (context) => const ManageClassScreen(),
       },
     );
   }

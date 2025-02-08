@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:school_management/pages/loginpage.dart';
 import 'package:school_management/pages/manage_students.dart';
+import 'package:school_management/pages/view_evaluation_status.dart';
+import 'package:school_management/pages/manage_class.dart';
 
 import 'generate_report_card.dart';
+import 'generate_master_sheet.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -59,6 +62,11 @@ class AdminDashboard extends StatelessWidget {
               label: 'View Evaluation Status',
               onTap: () {
                 // Implement navigation for evaluation status
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ViewEvaluationStatus()),
+                );
               },
             ),
             _buildDashboardItem(
@@ -66,7 +74,11 @@ class AdminDashboard extends StatelessWidget {
               icon: Icons.table_chart_outlined,
               label: 'Generate Master Sheet',
               onTap: () {
-                // Implement navigation for master sheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const GenerateMasterSheetScreen()),
+                );
               },
             ),
             _buildDashboardItem(
@@ -78,6 +90,18 @@ class AdminDashboard extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const GenerateReportCardScreen()),
+                );
+              },
+            ),
+            _buildDashboardItem(
+              context,
+              icon: Icons.class_,
+              label: 'Manage Class',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ManageClassScreen()),
                 );
               },
             ),

@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
-class ManageStudentsScreen extends StatefulWidget {
-  const ManageStudentsScreen({super.key});
+class ManageClassScreen extends StatefulWidget {
+  const ManageClassScreen({super.key});
 
   @override
-  _ManageStudentsScreenState createState() => _ManageStudentsScreenState();
+  _ManageClassScreenState createState() => _ManageClassScreenState();
 }
 
-class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
-  List<ParseObject> students = [];
-  List<ParseObject> filteredStudents = [];
+class _ManageClassScreenState extends State<ManageClassScreen> {
+  List<ParseObject> subjects = [];
+  List<ParseObject> filteredSubjects = [];
+  List<String> teachers = [];
   bool isLoading = false;
   String searchQuery = '';
   String? selectedClass;
+  String? selectedTeacher1;
   final List<String> classes = [
     'Form 1',
     'Form 2',
@@ -24,37 +26,56 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     'Upper Sixth',
   ];
 
+  List<String> teachers1 = [];
+
   @override
   void initState() {
     super.initState();
+    fetchTeachers();
   }
 
-  Future<void> fetchStudents() async {
+  Future<void> fetchTeachers() async {
+    final ParseCloudFunction function = ParseCloudFunction('getAllTeachers');
+    final ParseResponse result = await function.execute();
+
+    if (result.success && result.result != null) {
+      setState(() {
+        teachers1 = (result.result as List)
+            .map((e) => e['username'] ?? 'Unknown Teacher')
+            .cast<String>()
+            .toList();
+      });
+      print("Teachers List: $teachers1");
+    } else {
+      print("Failed to fetch teachers.");
+    }
+  }
+
+  Future<void> fetchSubjects() async {
     if (selectedClass == null) return;
 
     setState(() {
       isLoading = true;
     });
 
-    final query = QueryBuilder<ParseObject>(
-        ParseObject(selectedClass!.replaceAll(" ", "")))
-      ..orderByAscending('name');
+    final query = QueryBuilder<ParseObject>(ParseObject('Subjects'))
+      ..whereEqualTo('class', selectedClass);
 
     final response = await query.query();
     if (response.success && response.results != null) {
       setState(() {
-        students = response.results!.cast<ParseObject>();
-        filteredStudents = students;
+        subjects = response.results!.cast<ParseObject>();
+        filteredSubjects = subjects;
         isLoading = false;
       });
     }
   }
 
-  void filterStudents(String query) {
+  void filterSubjects(String query) {
     setState(() {
       searchQuery = query;
-      filteredStudents = students
-          .where((student) => student
+      filteredSubjects = subjects
+          .where((subject) => subject
               .get<String>('name')!
               .toLowerCase()
               .contains(query.toLowerCase()))
@@ -62,19 +83,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     });
   }
 
-  Future<void> deleteStudent(ParseObject student) async {
+  Future<void> deleteSubject(ParseObject subject) async {
     setState(() {
       isLoading = true;
     });
 
-    final response = await student.delete();
+    final response = await subject.delete();
     if (response.success) {
-      fetchStudents();
+      fetchSubjects();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content:
-                Text('Failed to delete student: ${response.error!.message}')),
+                Text('Failed to delete subject: ${response.error!.message}')),
       );
       setState(() {
         isLoading = false;
@@ -82,38 +103,60 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     }
   }
 
-  void showEditStudentDialog(ParseObject student) {
+  void showEditSubjectDialog(ParseObject subject) {
     final nameController =
-        TextEditingController(text: student.get<String>('name'));
-    final dobController =
-        TextEditingController(text: student.get<String>('dob'));
-    final classController =
-        TextEditingController(text: student.get<String>('class'));
-    final tradeController =
-        TextEditingController(text: student.get<String>('trade'));
+        TextEditingController(text: subject.get<String>('name'));
+    final coefController =
+        TextEditingController(text: subject.get<String>('coef'));
+    selectedTeacher1 = subject.get<String>('teacher');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Student'),
+        title: const Text('Edit Subject'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: 'Enter subject name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(
+              height: 15,
             ),
             TextField(
-              controller: dobController,
-              decoration: const InputDecoration(labelText: 'Date of Birth'),
+              controller: coefController,
+              decoration: const InputDecoration(
+                labelText: 'Coefficient',
+                hintText: 'Enter coefficient',
+                border: OutlineInputBorder(),
+              ),
             ),
-            TextField(
-              controller: classController,
-              decoration: const InputDecoration(labelText: 'Class'),
+            const SizedBox(
+              height: 15,
             ),
-            TextField(
-              controller: tradeController,
-              decoration: const InputDecoration(labelText: 'Trade'),
+            DropdownButtonFormField<String>(
+              value: selectedTeacher1,
+              onChanged: (value) {
+                setState(() {
+                  selectedTeacher1 = value!;
+                });
+              },
+              // onTap: selectedClass != null ? () => fetchTeachers() : null,
+              items: teachers1
+                  .map((teacher) => DropdownMenuItem<String>(
+                        value: teacher,
+                        child: Text(teacher),
+                      ))
+                  .toList(),
+              decoration: const InputDecoration(
+                labelText: "Teacher",
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
@@ -124,21 +167,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              student
+              subject
                 ..set('name', nameController.text.trim())
-                ..set('dob', dobController.text.trim())
-                ..set('class', classController.text.trim())
-                ..set('trade', tradeController.text.trim());
+                ..set('coef', coefController.text.trim())
+                ..set('teacher', selectedTeacher1);
 
-              final response = await student.save();
+              final response = await subject.save();
               if (response.success) {
-                fetchStudents();
+                fetchSubjects();
                 Navigator.pop(ctx);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                       content: Text(
-                          'Failed to update student: ${response.error!.message}')),
+                          'Failed to update subject: ${response.error!.message}')),
                 );
               }
             },
@@ -149,33 +191,16 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  void showAddStudentDialog() {
+  void showAddSubjectDialog() {
     final nameController = TextEditingController();
-    final dobController = TextEditingController();
-    String selectedClass = 'Form 1';
-    String selectedTrade = 'None';
-
-    final List<String> classes = [
-      'Form 1',
-      'Form 2',
-      'Form 3',
-      'Form 4',
-      'Form 5',
-      'Lower Sixth',
-      'Upper Sixth',
-    ];
-
-    final List<String> trades = [
-      'None',
-      'Grammar',
-      'Commercial',
-      'Industrial',
-    ];
+    final coefController = TextEditingController();
+    /* String? selectedTeacherId =
+        teachers.isNotEmpty ? teachers.first.objectId : null; */
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Student'),
+        title: const Text('Add Subject'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -184,57 +209,38 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Name',
-                  hintText: 'Enter full name',
+                  hintText: 'Enter subject name',
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 20),
               TextField(
-                controller: dobController,
+                controller: coefController,
                 decoration: const InputDecoration(
-                  labelText: 'Date of Birth',
-                  hintText: 'DD/MM/YYYY',
+                  labelText: 'Coefficient',
+                  hintText: 'Enter coefficient',
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
-                value: selectedClass,
-                items: classes.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                value: selectedTeacher1,
                 onChanged: (value) {
                   setState(() {
-                    selectedClass = value!;
+                    selectedTeacher1 = value!;
                   });
                 },
-                decoration: const InputDecoration(
-                  labelText: 'Class',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: selectedTrade,
-                items: trades.map((String value) {
+                items: teachers1.map((teacher) {
                   return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+                    value: teacher,
+                    child: Text(teacher),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedTrade = value!;
-                  });
-                },
                 decoration: const InputDecoration(
-                  labelText: 'Trade',
+                  labelText: "Teacher",
                   border: OutlineInputBorder(),
                 ),
-              ),
+              )
             ],
           ),
         ),
@@ -245,21 +251,21 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final student = ParseObject(selectedClass.replaceAll(" ", ""))
+              final subject = ParseObject('Subjects')
                 ..set('name', nameController.text.trim())
-                ..set('dob', dobController.text.trim())
+                ..set('coef', coefController.text.trim())
                 ..set('class', selectedClass)
-                ..set('trade', selectedTrade);
+                ..set('teacher', selectedTeacher1);
 
-              final response = await student.save();
+              final response = await subject.save();
               if (response.success) {
-                fetchStudents();
+                fetchSubjects();
                 Navigator.pop(ctx);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                       content: Text(
-                          'Failed to add student: ${response.error!.message}')),
+                          'Failed to add subject: ${response.error!.message}')),
                 );
               }
             },
@@ -274,11 +280,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Students'),
+        title: const Text('Manage Class'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: showAddStudentDialog,
+            onPressed: showAddSubjectDialog,
           ),
         ],
       ),
@@ -297,7 +303,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               onChanged: (value) {
                 setState(() {
                   selectedClass = value;
-                  fetchStudents();
+                  fetchSubjects();
+                  // fetchTeachers();
+                  // loadTeachers();
                 });
               },
               decoration: const InputDecoration(
@@ -315,20 +323,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.search),
                 ),
-                onChanged: filterStudents,
+                onChanged: filterSubjects,
               ),
             ),
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
-                      itemCount: filteredStudents.length,
+                      itemCount: filteredSubjects.length,
                       itemBuilder: (context, index) {
-                        final student = filteredStudents[index];
+                        final subject = filteredSubjects[index];
                         return Column(
                           children: [
                             Dismissible(
-                              key: Key(student.objectId!),
+                              key: Key(subject.objectId!),
                               background: Container(
                                 color: Colors.green,
                                 alignment: Alignment.centerLeft,
@@ -347,7 +355,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                               ),
                               confirmDismiss: (direction) async {
                                 if (direction == DismissDirection.startToEnd) {
-                                  showEditStudentDialog(student);
+                                  showEditSubjectDialog(subject);
                                   return false;
                                 } else if (direction ==
                                     DismissDirection.endToStart) {
@@ -357,7 +365,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                                       return AlertDialog(
                                         title: const Text("Confirm"),
                                         content: const Text(
-                                            "Are you sure you want to delete this student?"),
+                                            "Are you sure you want to delete this subject?"),
                                         actions: <Widget>[
                                           TextButton(
                                             onPressed: () =>
@@ -375,21 +383,21 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                                     },
                                   );
                                   if (res == true) {
-                                    deleteStudent(student);
+                                    deleteSubject(subject);
                                   }
                                   return res;
                                 }
                                 return false;
                               },
                               child: ListTile(
-                                title: Text(student
+                                title: Text(subject
                                         .get<String>('name')
                                         ?.toUpperCase() ??
                                     ''),
                                 subtitle: Text(
-                                    'DOB: ${student.get<String>('dob') ?? ''}'),
+                                    'Coefficient: ${subject.get<String>('coef') ?? ''}'),
                                 trailing:
-                                    Text(student.get<String>('class') ?? ''),
+                                    Text(subject.get<String>('teacher') ?? ''),
                               ),
                             ),
                             const Divider(
