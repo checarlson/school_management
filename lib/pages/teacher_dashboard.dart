@@ -35,7 +35,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
       // Query classes assigned to the teacher
       final QueryBuilder<ParseObject> queryClasses =
-          QueryBuilder<ParseObject>(ParseObject('Classes'))
+          QueryBuilder<ParseObject>(ParseObject('Subjects'))
             ..whereEqualTo('teacher', currentUser.username);
 
       final ParseResponse response = await queryClasses.query();
@@ -43,7 +43,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         setState(() {
           assignedClasses = (response.results! as List<ParseObject>)
               .map((e) =>
-                  e.get<String>('name') ?? 'Unknown Class') // Cast to String
+                  e.get<String>('class') ?? 'Unknown Class') // Cast to String
               .toSet() // Convert to Set to remove duplicates
               .toList(); // Convert back to List
         });
@@ -55,7 +55,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
     setState(() {
       isLoading = false;
-      user = user;
+      // user = user;
     });
   }
 

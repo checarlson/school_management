@@ -89,8 +89,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         TextEditingController(text: student.get<String>('dob'));
     final classController =
         TextEditingController(text: student.get<String>('class'));
+    final oldClass = student.get<String>('class');
     final tradeController =
         TextEditingController(text: student.get<String>('trade'));
+
+    String selectedTrade = 'None';
+
+    final List<String> trades = [
+      'None',
+      'Grammar',
+      'Commercial',
+      'Industrial',
+    ];
+
+    print("old: $oldClass");
 
     showDialog(
       context: context,
@@ -103,17 +115,54 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Name'),
             ),
+            const SizedBox(
+              height: 20,
+            ),
             TextField(
               controller: dobController,
               decoration: const InputDecoration(labelText: 'Date of Birth'),
             ),
-            TextField(
-              controller: classController,
-              decoration: const InputDecoration(labelText: 'Class'),
+            const SizedBox(
+              height: 20,
             ),
-            TextField(
-              controller: tradeController,
-              decoration: const InputDecoration(labelText: 'Trade'),
+            DropdownButtonFormField<String>(
+              value: selectedClass,
+              items: classes.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedClass = value!;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: 'Class',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            DropdownButtonFormField<String>(
+              value: selectedTrade,
+              items: trades.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedTrade = value!;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: 'Trade',
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
@@ -124,22 +173,45 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              student
-                ..set('name', nameController.text.trim())
-                ..set('dob', dobController.text.trim())
-                ..set('class', classController.text.trim())
-                ..set('trade', tradeController.text.trim());
+              print("new: ${classController.text.trim()}");
+              if (oldClass != classController.text.trim()) {
+                final student1 =
+                    ParseObject(classController.text.replaceAll(" ", ""))
+                      ..set('name', nameController.text.trim())
+                      ..set('dob', dobController.text.trim())
+                      ..set('class', selectedClass)
+                      ..set('trade', selectedTrade);
 
-              final response = await student.save();
-              if (response.success) {
-                fetchStudents();
-                Navigator.pop(ctx);
+                final response = await student1.save();
+                if (response.success) {
+                  fetchStudents();
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Failed to edit student: ${response.error!.message}')),
+                  );
+                }
+                deleteStudent(student);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                          'Failed to update student: ${response.error!.message}')),
-                );
+                student
+                  ..set('name', nameController.text.trim())
+                  ..set('dob', dobController.text.trim())
+                  ..set('class', selectedClass)
+                  ..set('trade', selectedTrade);
+
+                final response = await student.save();
+                if (response.success) {
+                  fetchStudents();
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Failed to update student: ${response.error!.message}')),
+                  );
+                }
               }
             },
             child: const Text('Save'),

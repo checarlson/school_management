@@ -31,9 +31,8 @@ class _EvaluationEntryScreenState extends State<EvaluationEntryScreen> {
   Future<void> fetchStudents() async {
     final query = QueryBuilder<ParseObject>(
         ParseObject(widget.className.replaceAll(" ", "")))
-      ..includeObject([
-        widget.selectedSubject.replaceAll(" ", "")
-      ]); // Include the selected subject column
+      ..includeObject([widget.selectedSubject.replaceAll(" ", "")])
+      ..orderByAscending('name'); // Include the selected subject column
 
     final response = await query.query();
     if (response.success && response.results != null) {
@@ -75,57 +74,66 @@ class _EvaluationEntryScreenState extends State<EvaluationEntryScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: students.length,
-                      itemBuilder: (context, index) {
-                        final student = students[index];
-                        return Column(
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
+                  students.isEmpty
+                      ? const Center(
+                          child: Text('No students found for this class'))
+                      : Expanded(
+                          child: ListView.builder(
+                            itemCount: students.length,
+                            itemBuilder: (context, index) {
+                              final student = students[index];
+                              return Column(
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      student.get<String>('name') ??
-                                          'Unknown Student',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            student
+                                                    .get<String>('name')
+                                                    ?.toUpperCase() ??
+                                                'Unknown Student',
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 100,
+                                          child: TextField(
+                                            controller: TextEditingController(
+                                              text: studentMarks[index]
+                                                  ['marks'],
+                                            ),
+                                            onChanged: (value) {
+                                              studentMarks[index]['marks'] =
+                                                  value;
+                                            },
+                                            decoration: const InputDecoration(
+                                              labelText: 'Marks',
+                                              border: OutlineInputBorder(),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                      vertical: 10.0,
+                                                      horizontal:
+                                                          10.0), // Adjust padding
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: TextField(
-                                      controller: TextEditingController(
-                                        text: studentMarks[index]['marks'],
-                                      ),
-                                      onChanged: (value) {
-                                        studentMarks[index]['marks'] = value;
-                                      },
-                                      decoration: const InputDecoration(
-                                        labelText: 'Marks',
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                            vertical: 10.0,
-                                            horizontal: 10.0), // Adjust padding
-                                      ),
-                                    ),
-                                  ),
+                                  const Divider(
+                                    thickness: 1.5,
+                                  ), // Add horizontal divider
                                 ],
-                              ),
-                            ),
-                            const Divider(
-                              thickness: 1.5,
-                            ), // Add horizontal divider
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                              );
+                            },
+                          ),
+                        ),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {

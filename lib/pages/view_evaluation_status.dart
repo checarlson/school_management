@@ -96,60 +96,29 @@ class _ViewEvaluationStatusState extends State<ViewEvaluationStatus> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            InputDecorator(
+            DropdownButtonFormField<String>(
+              value: selectedClass,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedClass = newValue;
+                  fetchSubjectsAndCalculatePercentage();
+                });
+              },
+              items: classes.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               decoration: const InputDecoration(
-                labelText: 'Select Class',
+                labelText: "Select Class",
                 border: OutlineInputBorder(),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  hint: const Text('Select Class'),
-                  value: selectedClass,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedClass = newValue;
-                      fetchSubjectsAndCalculatePercentage();
-                    });
-                  },
-                  items: classes.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
               ),
             ),
             const SizedBox(
               height: 20,
             ),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Select Evaluation',
-                border: OutlineInputBorder(),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  hint: const Text('Select Evaluation'),
-                  value: selectedEvaluation,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedEvaluation = newValue;
-                      fetchSubjectsAndCalculatePercentage();
-                    });
-                  },
-                  items:
-                      evaluations.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            /*  DropdownButton<String>(
-              hint: const Text('Select Evaluation'),
+            DropdownButtonFormField<String>(
               value: selectedEvaluation,
               onChanged: (String? newValue) {
                 setState(() {
@@ -163,7 +132,11 @@ class _ViewEvaluationStatusState extends State<ViewEvaluationStatus> {
                   child: Text(value),
                 );
               }).toList(),
-            ), */
+              decoration: const InputDecoration(
+                labelText: "Select Evaluation",
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(
               height: 15,
             ),
