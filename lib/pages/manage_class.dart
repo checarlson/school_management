@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
 class ManageClassScreen extends StatefulWidget {
   const ManageClassScreen({super.key});
@@ -75,10 +76,15 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     setState(() {
       searchQuery = query;
       filteredSubjects = subjects
-          .where((subject) => subject
-              .get<String>('name')!
-              .toLowerCase()
-              .contains(query.toLowerCase()))
+          .where((subject) =>
+              subject
+                  .get<String>('name')!
+                  .toLowerCase()
+                  .contains(query.toLowerCase()) ||
+              subject
+                  .get<String>('trade')!
+                  .toLowerCase()
+                  .contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -109,6 +115,14 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     final coefController =
         TextEditingController(text: subject.get<String>('coef'));
     selectedTeacher1 = subject.get<String>('teacher');
+    String? selectedTrade = subject.get<String>('trade');
+
+    final List<String> trades = [
+      'None',
+      'Grammar',
+      'Commercial',
+      'Industrial',
+    ];
 
     showDialog(
       context: context,
@@ -146,7 +160,6 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                   selectedTeacher1 = value!;
                 });
               },
-              // onTap: selectedClass != null ? () => fetchTeachers() : null,
               items: teachers1
                   .map((teacher) => DropdownMenuItem<String>(
                         value: teacher,
@@ -155,6 +168,27 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                   .toList(),
               decoration: const InputDecoration(
                 labelText: "Teacher",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(
+              height: 15,
+            ),
+            DropdownButtonFormField<String>(
+              value: selectedTrade,
+              onChanged: (value) {
+                setState(() {
+                  selectedTrade = value!;
+                });
+              },
+              items: trades.map((trade) {
+                return DropdownMenuItem<String>(
+                  value: trade,
+                  child: Text(trade),
+                );
+              }).toList(),
+              decoration: const InputDecoration(
+                labelText: "Trade",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -170,7 +204,8 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
               subject
                 ..set('name', nameController.text.trim())
                 ..set('coef', coefController.text.trim())
-                ..set('teacher', selectedTeacher1);
+                ..set('teacher', selectedTeacher1)
+                ..set('trade', selectedTrade);
 
               final response = await subject.save();
               if (response.success) {
@@ -194,8 +229,14 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
   void showAddSubjectDialog() {
     final nameController = TextEditingController();
     final coefController = TextEditingController();
-    /* String? selectedTeacherId =
-        teachers.isNotEmpty ? teachers.first.objectId : null; */
+    String? selectedTrade = 'None';
+
+    final List<String> trades = [
+      'None',
+      'Grammar',
+      'Commercial',
+      'Industrial',
+    ];
 
     showDialog(
       context: context,
@@ -240,7 +281,26 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                   labelText: "Teacher",
                   border: OutlineInputBorder(),
                 ),
-              )
+              ),
+              const SizedBox(height: 20),
+              DropdownButtonFormField<String>(
+                value: selectedTrade,
+                onChanged: (value) {
+                  setState(() {
+                    selectedTrade = value!;
+                  });
+                },
+                items: trades.map((trade) {
+                  return DropdownMenuItem<String>(
+                    value: trade,
+                    child: Text(trade),
+                  );
+                }).toList(),
+                decoration: const InputDecoration(
+                  labelText: "Trade",
+                  border: OutlineInputBorder(),
+                ),
+              ),
             ],
           ),
         ),
@@ -255,7 +315,8 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                 ..set('name', nameController.text.trim())
                 ..set('coef', coefController.text.trim())
                 ..set('class', selectedClass)
-                ..set('teacher', selectedTeacher1);
+                ..set('teacher', selectedTeacher1)
+                ..set('trade', selectedTrade);
 
               final response = await subject.save();
               if (response.success) {
@@ -304,8 +365,6 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                 setState(() {
                   selectedClass = value;
                   fetchSubjects();
-                  // fetchTeachers();
-                  // loadTeachers();
                 });
               },
               decoration: const InputDecoration(
@@ -396,8 +455,12 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
                                     ''),
                                 subtitle: Text(
                                     'Coefficient: ${subject.get<String>('coef') ?? ''}'),
-                                trailing:
+                                trailing: Column(
+                                  children: [
                                     Text(subject.get<String>('teacher') ?? ''),
+                                    Text(subject.get<String>('trade') ?? ''),
+                                  ],
+                                ),
                               ),
                             ),
                             const Divider(
