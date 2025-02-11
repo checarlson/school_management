@@ -91,7 +91,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Welcome $user',
+                    'Welcome Mr/Mme $user',
                     style: const TextStyle(
                         fontSize: 24, fontWeight: FontWeight.bold),
                   ),
