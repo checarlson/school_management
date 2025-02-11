@@ -8,7 +8,7 @@ jobs:
       # Checkout Repository
       - uses: actions/checkout@v3
 
-      # Install Flutter command
+      # Install Flutter
       - uses: flutter-actions/setup-flutter@v2
         with:
           channel: stable
@@ -22,9 +22,13 @@ jobs:
           flutter build web --release
         working-directory: ./
 
-      # Decode and store the GCP_SA_KEY
-      - name: Decode GCP_SA_KEY
-        run: echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > /opt/gcp_key.json
+      # Store GCP Service Account Key
+      - name: Store GCP_SA_KEY
+        run: echo '${{ secrets.GCP_SA_KEY }}' > /opt/gcp_key.json
+
+      # Verify the key file
+      - name: Verify GCP Key File
+        run: ls -l /opt/gcp_key.json && cat /opt/gcp_key.json
 
       # Deploy Firebase Hosting
       - name: Deploy Firebase Hosting
@@ -32,4 +36,4 @@ jobs:
         with:
           args: deploy --only hosting:schoolmanagement-703cc
         env:
-          GCP_SA_KEY: /opt/gcp_key.json
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}

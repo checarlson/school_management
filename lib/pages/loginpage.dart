@@ -83,39 +83,51 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: "Enter Username",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_2_outlined),
-              ),
+            Image.asset(
+              'assets/logo.PNG',
+              width: 250,
+              height: 250,
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: passwordController,
-              obscureText: obscureText,
-              decoration: InputDecoration(
-                labelText: "Enter Password",
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.key_outlined),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    obscureText ? Icons.visibility_off : Icons.visibility,
+            const SizedBox(
+              height: 20,
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: "Enter Username",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_2_outlined),
                   ),
-                  onPressed: _togglePasswordVisibility,
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: login,
-                    child: const Text('Login'),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscureText,
+                  decoration: InputDecoration(
+                    labelText: "Enter Password",
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.key_outlined),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureText ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: _togglePasswordVisibility,
+                    ),
                   ),
+                ),
+                const SizedBox(height: 20),
+                isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: login,
+                        child: const Text('Login'),
+                      ),
+              ],
+            ),
           ],
         ),
       ),
