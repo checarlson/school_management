@@ -5,11 +5,13 @@ class EvaluationEntryScreen extends StatefulWidget {
   final String selectedSubject;
   final String className;
   final String selectedEvaluation;
+  final String trade;
 
   const EvaluationEntryScreen({
     required this.className,
     required this.selectedSubject,
     required this.selectedEvaluation,
+    required this.trade,
     super.key,
   });
 
@@ -29,9 +31,58 @@ class _EvaluationEntryScreenState extends State<EvaluationEntryScreen> {
   }
 
   Future<void> fetchStudents() async {
+    if (widget.trade == 'None') {
+      //get all students in the class. No trade specific
+      final query = QueryBuilder<ParseObject>(
+          ParseObject(widget.className.replaceAll(" ", "")))
+        ..includeObject([widget.selectedSubject.replaceAll(" ", "")])
+        ..orderByAscending('name'); // Include the selected subject column
+
+      final response = await query.query();
+      if (response.success && response.results != null) {
+        setState(() {
+          students = response.results!.cast<ParseObject>();
+          studentMarks = students.map((e) {
+            final marksArray = e.get<List<dynamic>>(
+                    widget.selectedSubject.replaceAll(" ", "")) ??
+                List.filled(6, '');
+            final evaluationIndex =
+                int.parse(widget.selectedEvaluation.trim()) - 1;
+            final marks = marksArray[evaluationIndex] ?? '';
+            return {'id': e.objectId!, 'marks': marks.toString()};
+          }).toList();
+          isLoading = false;
+        });
+      }
+    } else {
+      //get only students offering a particular trade
+      final query = QueryBuilder<ParseObject>(
+          ParseObject(widget.className.replaceAll(" ", "")))
+        ..includeObject([widget.selectedSubject.replaceAll(" ", "")])
+        ..whereEqualTo('trade', widget.trade)
+        ..orderByAscending('name'); // Include the selected subject column
+
+      final response = await query.query();
+      if (response.success && response.results != null) {
+        setState(() {
+          students = response.results!.cast<ParseObject>();
+          studentMarks = students.map((e) {
+            final marksArray = e.get<List<dynamic>>(
+                    widget.selectedSubject.replaceAll(" ", "")) ??
+                List.filled(6, '');
+            final evaluationIndex =
+                int.parse(widget.selectedEvaluation.trim()) - 1;
+            final marks = marksArray[evaluationIndex] ?? '';
+            return {'id': e.objectId!, 'marks': marks.toString()};
+          }).toList();
+          isLoading = false;
+        });
+      }
+    }
     final query = QueryBuilder<ParseObject>(
         ParseObject(widget.className.replaceAll(" ", "")))
       ..includeObject([widget.selectedSubject.replaceAll(" ", "")])
+      ..whereEqualTo('trade', widget.trade)
       ..orderByAscending('name'); // Include the selected subject column
 
     final response = await query.query();

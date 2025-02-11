@@ -54,10 +54,15 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     setState(() {
       searchQuery = query;
       filteredStudents = students
-          .where((student) => student
-              .get<String>('name')!
-              .toLowerCase()
-              .contains(query.toLowerCase()))
+          .where((student) =>
+              student
+                  .get<String>('name')!
+                  .toLowerCase()
+                  .contains(query.toLowerCase()) ||
+              student
+                  .get<String>('trade')!
+                  .toLowerCase()
+                  .contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -93,7 +98,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final tradeController =
         TextEditingController(text: student.get<String>('trade'));
 
-    String selectedTrade = 'None';
+    String selectedTrade = tradeController.text;
 
     final List<String> trades = [
       'None',
@@ -174,13 +179,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           TextButton(
             onPressed: () async {
               print("new: ${classController.text.trim()}");
-              if (oldClass != classController.text.trim()) {
-                final student1 =
-                    ParseObject(classController.text.replaceAll(" ", ""))
-                      ..set('name', nameController.text.trim())
-                      ..set('dob', dobController.text.trim())
-                      ..set('class', selectedClass)
-                      ..set('trade', selectedTrade);
+              if (oldClass != selectedClass) {
+                final student1 = ParseObject(selectedClass!.replaceAll(" ", ""))
+                  ..set('name', nameController.text.trim())
+                  ..set('dob', dobController.text.trim())
+                  ..set('class', selectedClass)
+                  ..set('trade', selectedTrade);
 
                 final response = await student1.save();
                 if (response.success) {
@@ -243,6 +247,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       'Commercial',
       'Industrial',
     ];
+
+    setState(() {
+      isLoading = true;
+    });
 
     showDialog(
       context: context,
@@ -334,6 +342,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                           'Failed to add student: ${response.error!.message}')),
                 );
               }
+              setState(() {
+                isLoading = false;
+              });
             },
             child: const Text('Add'),
           ),
@@ -460,8 +471,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                                     ''),
                                 subtitle: Text(
                                     'DOB: ${student.get<String>('dob') ?? ''}'),
-                                trailing:
+                                trailing: Column(
+                                  children: [
                                     Text(student.get<String>('class') ?? ''),
+                                    Text(student.get<String>('trade') ?? '')
+                                  ],
+                                ),
                               ),
                             ),
                             const Divider(

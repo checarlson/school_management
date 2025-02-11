@@ -4,6 +4,7 @@ import 'package:school_management/pages/loginpage.dart';
 import 'package:school_management/pages/manage_students.dart';
 import 'package:school_management/pages/view_evaluation_status.dart';
 import 'package:school_management/pages/manage_class.dart';
+import 'package:school_management/pages/manage_teachers.dart';
 
 import 'generate_report_card.dart';
 import 'generate_master_sheet.dart';
@@ -102,6 +103,18 @@ class AdminDashboard extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const ManageClassScreen()),
+                );
+              },
+            ),
+            _buildDashboardItem(
+              context,
+              icon: Icons.person,
+              label: 'Manage Teachers',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ManageTeachersScreen()),
                 );
               },
             ),
