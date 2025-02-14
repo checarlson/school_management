@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class GenerateReportCardScreen extends StatefulWidget {
   const GenerateReportCardScreen({super.key});
@@ -70,6 +73,11 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     });
   }
 
+  Future<Uint8List> loadImage() async {
+    final ByteData data = await rootBundle.load('assets/logo.PNG');
+    return data.buffer.asUint8List();
+  }
+
   Future<void> generateReportCard(ParseObject student) async {
     final pdf = pw.Document();
     final termEvaluations = getTermEvaluations(selectedTerm!);
@@ -81,6 +89,37 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
       };
     }).toList();
 
+    String getTerm(String term) {
+      switch (term) {
+        case '1':
+          return 'First Term';
+        case '2':
+          return 'Second Term';
+        case '3':
+          return 'Third Term';
+        default:
+          return 'First Term';
+      }
+    }
+
+    String getRemark(double average) {
+      if (average >= 18) {
+        return 'Excellent';
+      } else if (average >= 15) {
+        return 'V.Good';
+      } else if (average >= 12) {
+        return 'Good';
+      } else if (average >= 10) {
+        return 'Average';
+      } else if (average >= 8) {
+        return 'Weak';
+      } else if (average >= 5) {
+        return 'V.Weak';
+      } else {
+        return 'V.Poor';
+      }
+    }
+
     studentAverages.sort((a, b) =>
         (b['average'] as double? ?? 0).compareTo(a['average'] as double? ?? 0));
 
@@ -88,22 +127,152 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
             .indexWhere((s) => s['name'] == student.get<String>('name')) +
         1;
 
+    Uint8List imageBytes = await loadImage(); // Load image before building PDF
+
+    // Calculate totalAvg and noSub for the current student
+    double totalAvg = 0;
+    int noSub = 0;
+    for (var subject in subjects) {
+      final subjectName = subject.get<String>('name') ?? '';
+      final marksArray =
+          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
+              List.filled(6, '');
+      final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
+      final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
+
+      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+        continue;
+      }
+
+      final average = ((double.tryParse(eval1.toString()) ?? 0) +
+              (double.tryParse(eval2.toString()) ?? 0)) /
+          2;
+      totalAvg += average;
+      noSub++;
+    }
+
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Report Card', style: const pw.TextStyle(fontSize: 24)),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                  'Name: ${student.get<String>('name')?.toUpperCase() ?? ''}'),
-              pw.Text('Class: ${selectedClass ?? ''}'),
+              pw.SizedBox(
+                width: double.infinity,
+                child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Text('Paix - Travail - Patrie',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Ministere Des Enseignements',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('Secondaire',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Delegation - Regionale de L`Ouest',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Delegation Departmentale du NDE',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Legendary Dice College Bangangte',
+                                style: const pw.TextStyle(fontSize: 10)),
+                          ]),
+                      pw.SizedBox(width: 20),
+                      pw.Image(pw.MemoryImage(imageBytes),
+                          width: 100, height: 100), // Fixed
+                      pw.SizedBox(width: 20),
+                      pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Text('Peace - Work - FatherLand',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Ministry of Secondary Education',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Regional Delegation of West',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Divisional Delegation for NDE',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Legendary Dice College Bangangte',
+                                style: const pw.TextStyle(fontSize: 10)),
+                          ]),
+                    ]),
+              ),
+              pw.Center(
+                  child: pw.Column(children: [
+                pw.SizedBox(height: 5),
+                pw.Text(('Legendary Dice College Bangangte').toUpperCase(),
+                    style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue)),
+                pw.SizedBox(height: 5),
+                pw.Text(
+                    ('${getTerm(selectedTerm.toString())} Report Card')
+                        .toUpperCase(),
+                    style: pw.TextStyle(
+                        fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Text('School Year: 2024/2025',
+                    style: const pw.TextStyle(fontSize: 14)),
+              ])),
+              // pw.Text('Report Card', style: const pw.TextStyle(fontSize: 24)),
+              pw.SizedBox(height: 15),
+
+              pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                              'NAME: ${student.get<String>('name')?.toUpperCase() ?? ''}',
+                              style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                              ('Date of Birth: ${student.get<String>('dob') ?? ''}')
+                                  .toUpperCase(),
+                              style: const pw.TextStyle(fontSize: 12)),
+                        ]),
+                    pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text(
+                              'CLASS: ${(selectedClass ?? '').toUpperCase()}',
+                              style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold)),
+                        ]),
+                  ]),
+
               pw.Text('Term: ${selectedTerm ?? ''}'),
               pw.Text('Rank: $studentRank'),
               pw.SizedBox(height: 20),
               pw.Table.fromTextArray(
-                headers: ['Subject', 'Evaluation 1', 'Evaluation 2', 'Average'],
+                headers: [
+                  'Subject',
+                  'Eva 1',
+                  'Eva 2',
+                  'AVG',
+                  'Coef',
+                  'Min',
+                  'Max',
+                  'Remark'
+                ],
+                headerStyle:
+                    pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                headerDecoration:
+                    const pw.BoxDecoration(color: PdfColors.grey300),
                 data: subjects.map((subject) {
                   final subjectName = subject.get<String>('name') ?? '';
                   final marksArray = student.get<List<dynamic>>(
@@ -114,14 +283,115 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   final average = ((double.tryParse(eval1.toString()) ?? 0) +
                           (double.tryParse(eval2.toString()) ?? 0)) /
                       2;
+                  final coef = subject.get<String>('coef') ?? '';
+                  final minAverage = calculateMinAverage(subjectName);
+                  final maxAverage = calculateMaxAverage(subjectName);
+
+                  if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+                    return [
+                      subjectName,
+                      '',
+                      '',
+                      '',
+                      '', //coef.toString(),
+                      '',
+                      '',
+                      '',
+                    ];
+                  }
+
                   return [
                     subjectName,
                     eval1.toString(),
                     eval2.toString(),
-                    average.toStringAsFixed(2)
+                    average.toStringAsFixed(2),
+                    coef.toString(),
+                    minAverage.toStringAsFixed(2),
+                    maxAverage.toStringAsFixed(2),
+                    getRemark(average),
                   ];
                 }).toList(),
+                cellAlignment: pw.Alignment.center, // Align all cells to center
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft
+                }, // Align Subject column to left
               ),
+              //second table
+              pw.Table.fromTextArray(
+                headerDecoration:
+                    const pw.BoxDecoration(color: PdfColors.grey300),
+                headers: [
+                  ' ',
+                ],
+                data: [
+                  [],
+                ],
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft,
+                  1: pw.Alignment.centerLeft,
+                  2: pw.Alignment.centerLeft,
+                  3: pw.Alignment.centerLeft,
+                  4: pw.Alignment.centerLeft,
+                  5: pw.Alignment.centerLeft,
+                },
+              ),
+              // pw.SizedBox(height: 10),
+
+              // Adds space between tables
+              pw.Column(children: [
+                pw.Table.fromTextArray(
+                  data: [
+                    [
+                      'Total AVG: $totalAvg',
+                      'No. Subject: $noSub',
+                      '1st Term Avg: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)} / 20',
+                      'Rank: $studentRank',
+                      'Remark: ${getRemark(calculateOverallAverage(student, termEvaluations))}',
+                    ],
+                  ],
+                  cellAlignments: {
+                    0: pw.Alignment.centerLeft,
+                    1: pw.Alignment.centerLeft,
+                    2: pw.Alignment.centerLeft,
+                    3: pw.Alignment.centerLeft,
+                    4: pw.Alignment.centerLeft,
+                    5: pw.Alignment.centerLeft,
+                  },
+                ),
+                pw.Table.fromTextArray(
+                  data: [
+                    [
+                      'Class Avg: 7.5 / 20',
+                      '1st SQ AVG: 9.45',
+                      '2nd SQ AVG: 7.98',
+                      '1st Avg: 12.4',
+                      'Last Avg: 4.3'
+                    ],
+                  ],
+                  cellAlignments: {
+                    0: pw.Alignment.centerLeft,
+                    1: pw.Alignment.centerLeft,
+                    2: pw.Alignment.centerLeft,
+                    3: pw.Alignment.centerLeft,
+                    4: pw.Alignment.centerLeft,
+                    5: pw.Alignment.centerLeft,
+                  },
+                ),
+                pw.Table.fromTextArray(
+                  data: [
+                    ['No. ABSENCE: 0']
+                  ],
+                  cellAlignments: {
+                    0: pw.Alignment.centerLeft,
+                    1: pw.Alignment.centerLeft,
+                    2: pw.Alignment.centerLeft,
+                    3: pw.Alignment.centerLeft,
+                    4: pw.Alignment.centerLeft,
+                    5: pw.Alignment.centerLeft,
+                  },
+                ),
+              ]),
+
               pw.SizedBox(height: 20),
               pw.Text(
                 'Overall Average: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)}',
@@ -164,6 +434,11 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
               List.filled(6, '');
       final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
       final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
+
+      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+        continue;
+      }
+
       final average = ((double.tryParse(eval1.toString()) ?? 0) +
               (double.tryParse(eval2.toString()) ?? 0)) /
           2;
@@ -172,6 +447,56 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     }
 
     return count > 0 ? total / count : 0;
+  }
+
+  double calculateMinAverage(String subjectName) {
+    double minAverage = double.infinity;
+
+    for (var student in students) {
+      final marksArray =
+          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
+              List.filled(6, '');
+      final eval1 = marksArray[0] ?? '';
+      final eval2 = marksArray[1] ?? '';
+
+      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+        continue;
+      }
+
+      final average = ((double.tryParse(eval1.toString()) ?? 0) +
+              (double.tryParse(eval2.toString()) ?? 0)) /
+          2;
+      if (average < minAverage) {
+        minAverage = average;
+      }
+    }
+
+    return minAverage == double.infinity ? 0 : minAverage;
+  }
+
+  double calculateMaxAverage(String subjectName) {
+    double maxAverage = double.negativeInfinity;
+
+    for (var student in students) {
+      final marksArray =
+          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
+              List.filled(6, '');
+      final eval1 = marksArray[0] ?? '';
+      final eval2 = marksArray[1] ?? '';
+
+      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+        continue;
+      }
+
+      final average = ((double.tryParse(eval1.toString()) ?? 0) +
+              (double.tryParse(eval2.toString()) ?? 0)) /
+          2;
+      if (average > maxAverage) {
+        maxAverage = average;
+      }
+    }
+
+    return maxAverage == double.negativeInfinity ? 0 : maxAverage;
   }
 
   @override
