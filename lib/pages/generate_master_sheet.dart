@@ -80,6 +80,8 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
 
     pdf.addPage(
       pw.Page(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -131,6 +133,7 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
     );
 
     await Printing.layoutPdf(
+      format: PdfPageFormat.a4.landscape,
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
@@ -148,6 +151,7 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
     }
   }
 
+  // Calculate the overall average for a student
   double calculateOverallAverage(
       ParseObject student, List<int> termEvaluations) {
     double total = 0;
@@ -160,6 +164,11 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
               List.filled(6, '');
       final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
       final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
+
+      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
+        continue;
+      }
+
       final average = ((double.tryParse(eval1.toString()) ?? 0) +
               (double.tryParse(eval2.toString()) ?? 0)) /
           2;

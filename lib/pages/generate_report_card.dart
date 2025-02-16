@@ -152,8 +152,18 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
       noSub++;
     }
 
+    // Calculate class average, first overall average, and last overall average
+    double classTotal = 0;
+    for (var avg in studentAverages) {
+      classTotal += avg['average'] as double;
+    }
+    double classAverage = classTotal / students.length;
+    double firstOverallAverage = studentAverages.first['average'] as double;
+    double lastOverallAverage = studentAverages.last['average'] as double;
+
     pdf.addPage(
       pw.Page(
+        margin: const pw.EdgeInsets.fromLTRB(25, 50, 25, 50),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -257,7 +267,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                               ('CLASS size: ${(students.length)}')
                                   .toUpperCase(),
                               style: pw.TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: pw.FontWeight.bold)),
                         ]),
                   ]),
@@ -352,8 +362,11 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                     [
                       'Total AVG: $totalAvg',
                       'No. Subject: $noSub',
-                      '${termName(termEvaluations)} Term Avg: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)} / 20',
-                      'Rank: $studentRank',
+                      pw.Text(
+                          '${termName(termEvaluations)} Term Avg: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)} / 20',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Rank: $studentRank',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       'Remark: ${getRemark(calculateOverallAverage(student, termEvaluations))}',
                     ],
                   ],
@@ -370,19 +383,19 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   tableWidth: pw.TableWidth.max,
                   data: [
                     [
-                      'Class Avg: 7.5 / 20',
+                      'Class Avg: ${classAverage.toStringAsFixed(2)}',
                       '${getSequenceName(termEvaluations, 0)} SQ AVG: ${calculateSQ1Average(student, termEvaluations).toStringAsFixed(2)}',
                       '${getSequenceName(termEvaluations, 1)} SQ AVG: ${calculateSQ2Average(student, termEvaluations).toStringAsFixed(2)}',
-                      '1st Avg: 12.4',
-                      'Last Avg: 4.3'
+                      '1st Position Avg: ${firstOverallAverage.toStringAsFixed(2)}',
+                      'Last Position Avg: ${lastOverallAverage.toStringAsFixed(2)}'
                     ],
                   ],
                   cellAlignments: {
-                    0: pw.Alignment.centerLeft,
+                    0: pw.Alignment.center,
                     1: pw.Alignment.center,
                     2: pw.Alignment.center,
-                    3: pw.Alignment.centerLeft,
-                    4: pw.Alignment.centerLeft,
+                    3: pw.Alignment.center,
+                    4: pw.Alignment.center,
                     5: pw.Alignment.centerLeft,
                   },
                 ),

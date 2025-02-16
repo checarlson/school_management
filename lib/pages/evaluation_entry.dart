@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
 class EvaluationEntryScreen extends StatefulWidget {
@@ -155,6 +156,7 @@ class _EvaluationEntryScreenState extends State<EvaluationEntryScreen> {
                                         SizedBox(
                                           width: 100,
                                           child: TextField(
+                                            keyboardType: TextInputType.number,
                                             controller: TextEditingController(
                                               text: studentMarks[index]
                                                   ['marks'],
@@ -163,6 +165,26 @@ class _EvaluationEntryScreenState extends State<EvaluationEntryScreen> {
                                               studentMarks[index]['marks'] =
                                                   value;
                                             },
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(
+                                                  RegExp(
+                                                      r'^\d{0,2}(\.\d{0,1})?$')),
+                                              TextInputFormatter.withFunction(
+                                                  (oldValue, newValue) {
+                                                if (newValue.text.isEmpty) {
+                                                  return newValue;
+                                                }
+                                                final double? number =
+                                                    double.tryParse(
+                                                        newValue.text);
+                                                if (number != null &&
+                                                    number >= 0 &&
+                                                    number <= 20) {
+                                                  return newValue;
+                                                }
+                                                return oldValue;
+                                              }),
+                                            ],
                                             decoration: const InputDecoration(
                                               labelText: 'Marks',
                                               border: OutlineInputBorder(),
