@@ -78,6 +78,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     return data.buffer.asUint8List();
   }
 
+  // Generate the report card for a student
   Future<void> generateReportCard(ParseObject student) async {
     final pdf = pw.Document();
     final termEvaluations = getTermEvaluations(selectedTerm!);
@@ -252,12 +253,18 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                               style: pw.TextStyle(
                                   fontSize: 14,
                                   fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                              ('CLASS size: ${(students.length)}')
+                                  .toUpperCase(),
+                              style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold)),
                         ]),
                   ]),
 
-              pw.Text('Term: ${selectedTerm ?? ''}'),
-              pw.Text('Rank: $studentRank'),
-              pw.SizedBox(height: 20),
+              /* pw.Text('Term: ${selectedTerm ?? ''}'),
+              pw.Text('Rank: ${students.length}'), */
+              pw.SizedBox(height: 10),
               pw.Table.fromTextArray(
                 headers: [
                   'Subject',
@@ -340,11 +347,12 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
               // Adds space between tables
               pw.Column(children: [
                 pw.Table.fromTextArray(
+                  tableWidth: pw.TableWidth.max,
                   data: [
                     [
                       'Total AVG: $totalAvg',
                       'No. Subject: $noSub',
-                      '1st Term Avg: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)} / 20',
+                      '${termName(termEvaluations)} Term Avg: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)} / 20',
                       'Rank: $studentRank',
                       'Remark: ${getRemark(calculateOverallAverage(student, termEvaluations))}',
                     ],
@@ -359,19 +367,20 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   },
                 ),
                 pw.Table.fromTextArray(
+                  tableWidth: pw.TableWidth.max,
                   data: [
                     [
                       'Class Avg: 7.5 / 20',
-                      '1st SQ AVG: 9.45',
-                      '2nd SQ AVG: 7.98',
+                      '${getSequenceName(termEvaluations, 0)} SQ AVG: ${calculateSQ1Average(student, termEvaluations).toStringAsFixed(2)}',
+                      '${getSequenceName(termEvaluations, 1)} SQ AVG: ${calculateSQ2Average(student, termEvaluations).toStringAsFixed(2)}',
                       '1st Avg: 12.4',
                       'Last Avg: 4.3'
                     ],
                   ],
                   cellAlignments: {
                     0: pw.Alignment.centerLeft,
-                    1: pw.Alignment.centerLeft,
-                    2: pw.Alignment.centerLeft,
+                    1: pw.Alignment.center,
+                    2: pw.Alignment.center,
                     3: pw.Alignment.centerLeft,
                     4: pw.Alignment.centerLeft,
                     5: pw.Alignment.centerLeft,
@@ -393,11 +402,30 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
               ]),
 
               pw.SizedBox(height: 20),
-              pw.Text(
+              /*  pw.Text(
                 'Overall Average: ${calculateOverallAverage(student, termEvaluations).toStringAsFixed(2)}',
                 style:
                     pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-              ),
+              ), */
+
+              pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(('Parent\'s Signature').toUpperCase(),
+                        style: const pw.TextStyle(fontSize: 13)),
+                    pw.Text(('Observation').toUpperCase(),
+                        style: const pw.TextStyle(fontSize: 13)),
+                    pw.Text(('Bangangte the:__________ ').toUpperCase(),
+                        style: const pw.TextStyle(fontSize: 13))
+                  ]),
+              pw.SizedBox(height: 20),
+              pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Text(('The Principal').toUpperCase(),
+                        style: const pw.TextStyle(fontSize: 13))
+                  ])
             ],
           );
         },
@@ -405,6 +433,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     );
 
     await Printing.layoutPdf(
+      name: student.get<String>('name')?.toUpperCase() ?? '',
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
@@ -422,6 +451,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     }
   }
 
+  // Calculate the overall average for a student
   double calculateOverallAverage(
       ParseObject student, List<int> termEvaluations) {
     double total = 0;
@@ -449,6 +479,90 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     return count > 0 ? total / count : 0;
   }
 
+  // Calculate the average for the first sequence
+  double calculateSQ1Average(ParseObject student, List<int> termEvaluations) {
+    int count = 0;
+    double sq1Avg = 0;
+
+    for (var subject in subjects) {
+      final subjectName = subject.get<String>('name') ?? '';
+      final marksArray =
+          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
+              List.filled(6, '');
+      final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
+
+      if (eval1.toString().isEmpty) {
+        continue;
+      }
+
+      sq1Avg += (double.tryParse(eval1.toString()) ?? 0);
+
+      count++;
+    }
+
+    return count > 0 ? sq1Avg / count : 0;
+  }
+
+  // Calculate the average for the second sequence
+  double calculateSQ2Average(ParseObject student, List<int> termEvaluations) {
+    int count = 0;
+    double sq2Avg = 0;
+
+    for (var subject in subjects) {
+      final subjectName = subject.get<String>('name') ?? '';
+      final marksArray =
+          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
+              List.filled(6, '');
+      final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
+
+      if (eval2.toString().isEmpty) {
+        continue;
+      }
+
+      sq2Avg += (double.tryParse(eval2.toString()) ?? 0);
+
+      count++;
+    }
+
+    return count > 0 ? sq2Avg / count : 0;
+  }
+
+  //prefix of term name
+  String termName(List<int> termEvaluations) {
+    if (termEvaluations[0] == 1 && termEvaluations[1] == 2) {
+      return '1st';
+    } else if (termEvaluations[0] == 3 && termEvaluations[1] == 4) {
+      return '2nd';
+    } else if (termEvaluations[0] == 5 && termEvaluations[1] == 6) {
+      return '3rd';
+    } else {
+      return '1st';
+    }
+  }
+
+  //prefix of sequence name
+  String getSequenceName(List<int> termEvaluations, int index) {
+    if (termEvaluations.isEmpty || termEvaluations.length <= index) return '';
+
+    switch (termEvaluations[index]) {
+      case 1:
+        return '1st';
+      case 2:
+        return '2nd';
+      case 3:
+        return '3rd';
+      case 4:
+        return '4th';
+      case 5:
+        return '5th';
+      case 6:
+        return '6th';
+      default:
+        return '';
+    }
+  }
+
+  // Get the minimum average for a given subject in the class
   double calculateMinAverage(String subjectName) {
     double minAverage = double.infinity;
 
@@ -474,6 +588,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     return minAverage == double.infinity ? 0 : minAverage;
   }
 
+  // Get the maximum average for a given subject in the class
   double calculateMaxAverage(String subjectName) {
     double maxAverage = double.negativeInfinity;
 
