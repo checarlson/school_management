@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
@@ -10,6 +13,19 @@ class GenerateMasterSheetScreen extends StatefulWidget {
   @override
   _GenerateMasterSheetScreenState createState() =>
       _GenerateMasterSheetScreenState();
+}
+
+String getTerm(String term) {
+  switch (term) {
+    case 'Term 1':
+      return 'First Term';
+    case 'Term 2':
+      return 'Second Term';
+    case 'Term 3':
+      return 'Third Term';
+    default:
+      return 'Unknown Term';
+  }
 }
 
 class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
@@ -74,19 +90,94 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
     });
   }
 
+  Future<Uint8List> loadImage() async {
+    final ByteData data = await rootBundle.load('assets/logo.PNG');
+    return data.buffer.asUint8List();
+  }
+
   Future<void> generateMasterSheet() async {
     final pdf = pw.Document();
     final termEvaluations = getTermEvaluations(selectedTerm!);
 
+    Uint8List imageBytes = await loadImage();
+
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
-          return pw.Column(
+        margin: const pw.EdgeInsets.fromLTRB(25, 50, 25, 50),
+        build: (pw.Context context) => [
+          pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Master Sheet', style: const pw.TextStyle(fontSize: 24)),
+              pw.SizedBox(
+                width: double.infinity,
+                child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Text('Paix - Travail - Patrie',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Ministere Des Enseignements',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('Secondaire',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Delegation - Regionale de L`Ouest',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Delegation Departmentale du NDE',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Legendary Dice College Bangangte',
+                                style: const pw.TextStyle(fontSize: 10)),
+                          ]),
+                      pw.SizedBox(width: 20),
+                      pw.Image(pw.MemoryImage(imageBytes),
+                          width: 100, height: 100), // Fixed
+                      pw.SizedBox(width: 20),
+                      pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Text('Peace - Work - FatherLand',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Ministry of Secondary Education',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Regional Delegation of West',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Divisional Delegation for NDE',
+                                style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('**********'),
+                            pw.Text('Legendary Dice College Bangangte',
+                                style: const pw.TextStyle(fontSize: 10)),
+                          ]),
+                    ]),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Center(
+                  child: pw.Column(children: [
+                pw.SizedBox(height: 5),
+                pw.Text(('Legendary Dice College Bangangte').toUpperCase(),
+                    style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue)),
+                pw.SizedBox(height: 5),
+                pw.Text(
+                    ('${getTerm(selectedTerm.toString())} Master Sheet')
+                        .toUpperCase(),
+                    style: pw.TextStyle(
+                        fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Text('School Year: 2024/2025',
+                    style: const pw.TextStyle(fontSize: 14)),
+              ])),
               pw.SizedBox(height: 20),
               pw.Text('Class: ${selectedClass ?? ''}'),
               pw.Text('Term: ${selectedTerm ?? ''}'),
@@ -100,6 +191,10 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
                   'Overall Average',
                   'Rank'
                 ],
+                headerStyle:
+                    pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+                headerDecoration:
+                    const pw.BoxDecoration(color: PdfColors.grey300),
                 data: students.map((student) {
                   final averages = subjects.map((subject) {
                     final subjectName = subject.get<String>('name') ?? '';
@@ -127,8 +222,8 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
                 }).toList(),
               ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
 
