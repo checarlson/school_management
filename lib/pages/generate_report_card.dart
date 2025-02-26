@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'dart:html' as html; // Import for web download
 
 class GenerateReportCardScreen extends StatefulWidget {
   const GenerateReportCardScreen({super.key});
@@ -76,6 +78,32 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
   Future<Uint8List> loadImage() async {
     final ByteData data = await rootBundle.load('assets/logo.PNG');
     return data.buffer.asUint8List();
+  }
+
+  /* Future<void> downloadPdfWeb(Uint8List pdfBytes, String fileName) async {
+    final blob = html.Blob([pdfBytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute("download", "$fileName.pdf") // ✅ Set the filename
+      ..click();
+
+    html.Url.revokeObjectUrl(url);
+  } */
+
+  Future<void> downloadPdfWeb(Uint8List pdfBytes, String fileName) async {
+    final blob = html.Blob([pdfBytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = url
+      ..style.display = 'none' // Hide the anchor
+      ..download = '$fileName.pdf';
+
+    html.document.body?.append(anchor);
+    anchor.click(); // Trigger download
+    anchor.remove(); // Clean up
+
+    html.Url.revokeObjectUrl(url);
   }
 
   // Generate the report card for a student
@@ -445,10 +473,21 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
       ),
     );
 
-    await Printing.layoutPdf(
+    final Uint8List pdfBytes = await pdf.save();
+
+    /* await Printing.layoutPdf(
       name: student.get<String>('name')?.toUpperCase() ?? '',
       onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    ); */
+    if (kIsWeb) {
+      await downloadPdfWeb(
+          pdfBytes, student.get<String>('name')?.toUpperCase() ?? 'STUDENT');
+    } else {
+      await Printing.layoutPdf(
+        name: student.get<String>('name')?.toUpperCase() ?? 'STUDENT',
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+      );
+    }
   }
 
   List<int> getTermEvaluations(String term) {

@@ -124,6 +124,7 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
+  /// Builds a dashboard item widget
   Widget _buildDashboardItem(
     BuildContext context, {
     required IconData icon,

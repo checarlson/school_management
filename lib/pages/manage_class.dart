@@ -34,6 +34,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     fetchTeachers();
   }
 
+  /// Fetches the list of teachers from the server
   Future<void> fetchTeachers() async {
     final ParseCloudFunction function = ParseCloudFunction('getAllTeachers');
     final ParseResponse result = await function.execute();
@@ -51,6 +52,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     }
   }
 
+  /// Fetches the list of subjects for the selected class
   Future<void> fetchSubjects() async {
     if (selectedClass == null) return;
 
@@ -71,6 +73,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     }
   }
 
+  /// Filters the list of subjects based on the search query
   void filterSubjects(String query) {
     setState(() {
       searchQuery = query;
@@ -88,6 +91,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     });
   }
 
+  /// Deletes the specified subject
   Future<void> deleteSubject(ParseObject subject) async {
     setState(() {
       isLoading = true;
@@ -108,6 +112,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     }
   }
 
+  /// Shows a dialog to edit the specified subject
   void showEditSubjectDialog(ParseObject subject) {
     final nameController =
         TextEditingController(text: subject.get<String>('name'));
@@ -225,6 +230,7 @@ class _ManageClassScreenState extends State<ManageClassScreen> {
     );
   }
 
+  /// Shows a dialog to add a new subject
   void showAddSubjectDialog() {
     final nameController = TextEditingController();
     final coefController = TextEditingController();
