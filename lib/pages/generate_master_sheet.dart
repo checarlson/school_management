@@ -1,5 +1,7 @@
 import 'dart:typed_data';
+import 'dart:html' as html;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
@@ -93,6 +95,22 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
   Future<Uint8List> loadImage() async {
     final ByteData data = await rootBundle.load('assets/logo.PNG');
     return data.buffer.asUint8List();
+  }
+
+  Future<void> downloadPdfWeb(Uint8List pdfBytes, String fileName) async {
+    final blob = html.Blob([pdfBytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = url
+      ..style.display = 'none' // Hide the anchor
+      ..download = '$fileName.pdf';
+
+    html.document.body?.append(anchor);
+    anchor.click(); // Trigger download
+    anchor.remove(); // Clean up
+
+    html.Url.revokeObjectUrl(url);
   }
 
   Future<void> generateMasterSheet() async {
@@ -231,6 +249,18 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
       format: PdfPageFormat.a4.landscape,
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
+
+    final Uint8List pdfBytes = await pdf.save();
+
+    if (kIsWeb) {
+      await downloadPdfWeb(
+          pdfBytes, '${selectedClass}_${selectedTerm}_Master_Sheet');
+    } else {
+      await Printing.layoutPdf(
+        name: '${selectedClass}_${selectedTerm}_Master_Sheet.pdf',
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+      );
+    }
   }
 
   List<int> getTermEvaluations(String term) {
