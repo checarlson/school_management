@@ -7,32 +7,17 @@ import 'package:pdf/pdf.dart';
 import 'dart:html' as html;
 import 'package:printing/printing.dart';
 
-class GenerateMasterSheetScreen extends StatefulWidget {
-  const GenerateMasterSheetScreen({super.key});
+class GenerateClassListScreen extends StatefulWidget {
+  const GenerateClassListScreen({super.key});
 
   @override
-  _GenerateMasterSheetScreenState createState() =>
-      _GenerateMasterSheetScreenState();
+  _GenerateClassListScreenState createState() =>
+      _GenerateClassListScreenState();
 }
 
-String getTerm(String term) {
-  switch (term) {
-    case 'Term 1':
-      return 'First Term';
-    case 'Term 2':
-      return 'Second Term';
-    case 'Term 3':
-      return 'Third Term';
-    default:
-      return 'Unknown Term';
-  }
-}
-
-class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
+class _GenerateClassListScreenState extends State<GenerateClassListScreen> {
   String? selectedClass;
-  String? selectedTerm;
   List<ParseObject> students = [];
-  List<ParseObject> subjects = [];
   bool isLoading = false;
 
   final List<String> classes = [
@@ -45,18 +30,12 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
     'Upper Sixth',
   ];
 
-  final List<String> terms = [
-    'Term 1',
-    'Term 2',
-    'Term 3',
-  ];
-
   @override
   void initState() {
     super.initState();
   }
 
-  Future<void> fetchStudentsAndSubjects() async {
+  Future<void> fetchStudents() async {
     if (selectedClass == null) return;
 
     setState(() {
@@ -67,21 +46,11 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
         ParseObject(selectedClass!.replaceAll(" ", "")))
       ..orderByAscending('name');
 
-    final subjectQuery = QueryBuilder<ParseObject>(ParseObject('Subjects'))
-      ..whereEqualTo('class', selectedClass);
-
     final studentResponse = await studentQuery.query();
-    final subjectResponse = await subjectQuery.query();
 
     if (studentResponse.success && studentResponse.results != null) {
       setState(() {
         students = studentResponse.results!.cast<ParseObject>();
-      });
-    }
-
-    if (subjectResponse.success && subjectResponse.results != null) {
-      setState(() {
-        subjects = subjectResponse.results!.cast<ParseObject>();
       });
     }
 
@@ -101,26 +70,25 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
 
     final anchor = html.document.createElement('a') as html.AnchorElement
       ..href = url
-      ..style.display = 'none' // Hide the anchor
+      ..style.display = 'none'
       ..download = '$fileName.pdf';
 
     html.document.body?.append(anchor);
-    anchor.click(); // Trigger download
-    anchor.remove(); // Clean up
+    anchor.click();
+    anchor.remove();
 
     html.Url.revokeObjectUrl(url);
   }
 
-  Future<void> generateMasterSheet() async {
+  Future<void> generateClassList() async {
     final pdf = pw.Document();
-    final termEvaluations = getTermEvaluations(selectedTerm!);
 
     Uint8List imageBytes = await loadImage();
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.fromLTRB(25, 50, 25, 50),
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(25),
         build: (pw.Context context) => [
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -153,7 +121,7 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
                           ]),
                       pw.SizedBox(width: 20),
                       pw.Image(pw.MemoryImage(imageBytes),
-                          width: 100, height: 100), // Fixed
+                          width: 100, height: 100),
                       pw.SizedBox(width: 20),
                       pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -185,9 +153,7 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
                         fontWeight: pw.FontWeight.bold,
                         color: PdfColors.blue)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                    ('${getTerm(selectedTerm.toString())} Master Sheet')
-                        .toUpperCase(),
+                pw.Text('Class List'.toUpperCase(),
                     style: pw.TextStyle(
                         fontSize: 18, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 5),
@@ -196,44 +162,32 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
               ])),
               pw.SizedBox(height: 20),
               pw.Text('Class: ${selectedClass ?? ''}'),
-              pw.Text('Term: ${selectedTerm ?? ''}'),
               pw.SizedBox(height: 20),
               pw.Table.fromTextArray(
                 headers: [
+                  'No.',
                   'Name',
-                  ...subjects
-                      .map((subject) => subject.get<String>('shortname') ?? '')
-                      .toList(),
-                  'Overall Average',
-                  'Rank'
+                  'Eva. 1',
+                  'Eva. 2',
+                  'Eva. 3',
+                  'Eva. 4',
+                  'Eva. 5',
+                  'Eva. 6'
                 ],
                 headerStyle:
                     pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
                 headerDecoration:
                     const pw.BoxDecoration(color: PdfColors.grey300),
                 data: students.map((student) {
-                  final averages = subjects.map((subject) {
-                    final subjectName = subject.get<String>('name') ?? '';
-                    final marksArray = student.get<List<dynamic>>(
-                            subjectName.replaceAll(" ", "")) ??
-                        List.filled(6, '');
-                    final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
-                    final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
-                    final average = ((double.tryParse(eval1.toString()) ?? 0) +
-                            (double.tryParse(eval2.toString()) ?? 0)) /
-                        2;
-                    return average.toStringAsFixed(2);
-                  }).toList();
-
-                  final overallAverage =
-                      calculateOverallAverage(student, termEvaluations);
-                  final rank = calculateRank(student, termEvaluations);
-
                   return [
+                    students.indexOf(student).toString(),
                     student.get<String>('name')?.toUpperCase() ?? '',
-                    ...averages,
-                    overallAverage.toStringAsFixed(2),
-                    rank.toString()
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
                   ];
                 }).toList(),
               ),
@@ -243,90 +197,23 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
       ),
     );
 
-    /* await Printing.layoutPdf(
-      format: PdfPageFormat.a4.landscape,
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    ); */
-
     final Uint8List pdfBytes = await pdf.save();
 
     if (kIsWeb) {
-      await downloadPdfWeb(
-          pdfBytes, '${selectedClass}_${selectedTerm}_Master_Sheet');
+      await downloadPdfWeb(pdfBytes, '${selectedClass}_Class_List');
     } else {
       await Printing.layoutPdf(
-        name: '${selectedClass}_${selectedTerm}_Master_Sheet.pdf',
+        name: '${selectedClass}_Class_List.pdf',
         onLayout: (PdfPageFormat format) async => pdfBytes,
       );
     }
-  }
-
-  List<int> getTermEvaluations(String term) {
-    switch (term) {
-      case 'Term 1':
-        return [1, 2];
-      case 'Term 2':
-        return [3, 4];
-      case 'Term 3':
-        return [5, 6];
-      default:
-        return [1, 2];
-    }
-  }
-
-  // Calculate the overall average for a student
-  double calculateOverallAverage(
-      ParseObject student, List<int> termEvaluations) {
-    double total = 0;
-    int count = 0;
-
-    for (var subject in subjects) {
-      final subjectName = subject.get<String>('name') ?? '';
-      final marksArray =
-          student.get<List<dynamic>>(subjectName.replaceAll(" ", "")) ??
-              List.filled(6, '');
-      final eval1 = marksArray[termEvaluations[0] - 1] ?? '';
-      final eval2 = marksArray[termEvaluations[1] - 1] ?? '';
-
-      if (eval1.toString().isEmpty && eval2.toString().isEmpty) {
-        continue;
-      }
-
-      final average = ((double.tryParse(eval1.toString()) ?? 0) +
-              (double.tryParse(eval2.toString()) ?? 0)) /
-          2;
-      total += average;
-      count++;
-    }
-
-    return count > 0 ? total / count : 0;
-  }
-
-  int calculateRank(ParseObject student, List<int> termEvaluations) {
-    final studentAverages = students.map((student) {
-      return {
-        'name': student.get<String>('name'),
-        'average': calculateOverallAverage(student, termEvaluations),
-      };
-    }).toList();
-
-    studentAverages.sort((a, b) =>
-        (b['average'] as double? ?? 0).compareTo(a['average'] as double? ?? 0));
-
-    final studentName = student.get<String>('name');
-    for (int i = 0; i < studentAverages.length; i++) {
-      if (studentAverages[i]['name'] == studentName) {
-        return i + 1;
-      }
-    }
-    return studentAverages.length;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Master Sheet'),
+        title: const Text('Generate Class List'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -343,7 +230,7 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
               onChanged: (value) {
                 setState(() {
                   selectedClass = value;
-                  fetchStudentsAndSubjects();
+                  fetchStudents();
                 });
               },
               decoration: const InputDecoration(
@@ -352,30 +239,11 @@ class _GenerateMasterSheetScreenState extends State<GenerateMasterSheetScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: selectedTerm,
-              items: terms.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedTerm = value;
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: 'Select Term',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
             isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                    onPressed: generateMasterSheet,
-                    child: const Text('Generate Master Sheet'),
+                    onPressed: generateClassList,
+                    child: const Text('Generate Class List'),
                   ),
           ],
         ),
