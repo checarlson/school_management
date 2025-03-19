@@ -161,7 +161,15 @@ class _GenerateClassListScreenState extends State<GenerateClassListScreen> {
                     style: const pw.TextStyle(fontSize: 14)),
               ])),
               pw.SizedBox(height: 20),
-              pw.Text('Class: ${selectedClass ?? ''}'),
+              pw.Text(
+                  'Class: ${selectedClass ?? ''}    Class size: ${students.length}',
+                  style: const pw.TextStyle(fontSize: 14)),
+              pw.SizedBox(height: 10),
+              pw.Text('Subject:________________________    Coef:_______',
+                  style: const pw.TextStyle(fontSize: 14)),
+              pw.SizedBox(height: 10),
+              pw.Text('Teacher:________________________',
+                  style: const pw.TextStyle(fontSize: 14)),
               pw.SizedBox(height: 20),
               pw.Table.fromTextArray(
                 headers: [
@@ -180,7 +188,7 @@ class _GenerateClassListScreenState extends State<GenerateClassListScreen> {
                     const pw.BoxDecoration(color: PdfColors.grey300),
                 data: students.map((student) {
                   return [
-                    students.indexOf(student).toString(),
+                    (students.indexOf(student) + 1).toString(),
                     student.get<String>('name')?.toUpperCase() ?? '',
                     '',
                     '',
